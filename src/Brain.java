@@ -1,5 +1,9 @@
+import java.util.Iterator;
+import java.util.List;
+
 import com.gargoylesoftware.htmlunit.BrowserVersion;
 import com.gargoylesoftware.htmlunit.WebClient;
+import com.gargoylesoftware.htmlunit.html.DomElement;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.html.HtmlPasswordInput;
@@ -9,14 +13,16 @@ import com.gargoylesoftware.htmlunit.javascript.JavaScriptEngine;
 
 public class Brain{
 	
-	private String user = "eunice13021985@gmail.com";
-	private String pass = "osmosys2018";
+	private String user = "ale_storm@outlook.com";
+	private String pass = "343Forerunner419";
 	
+	private WebClient webClient;
 	private HtmlPage mainpage;
+	
 	
 	public Brain() throws Exception {
 		logIn();
-		//sendMessage("");
+		sendMessage("");
 	}
 	
 	
@@ -30,11 +36,10 @@ public class Brain{
 	 * @return True if login was success, else false.
 	 * @throws Exception
 	 */
-	
-	public boolean logIn() throws Exception {
+	public int logIn() throws Exception {
 		
 		// Only works with Firefox
-		WebClient webClient = new WebClient(BrowserVersion.FIREFOX_52);
+		webClient = new WebClient(BrowserVersion.FIREFOX_52);
 		webClient.setJavaScriptEngine(new JavaScriptEngine(webClient));
 		
 		// Main page
@@ -55,27 +60,61 @@ public class Brain{
 		mainpage = blogin.click();
 		String text = mainpage.asText();
 		
+		System.out.println(mainpage.asText());
+		
 		if(text.contains("Iniciar sesión con un toque")){
 			HtmlSubmitInput acpt = (HtmlSubmitInput) mainpage.getForms().get(0).getInputByValue("Aceptar");
 			mainpage = acpt.click();
+			
+			System.out.println(mainpage.asText());
+			
+			return 0;
 		}
 		
 		else if(text.contains("Queremos asegurarnos de que tu cuenta está protegida"))
-			
+			return -1;
 		
-		System.out.println(mainpage.asText());
+		else
+			return 1;
 		
-		return mainpage.getTitleText().equals("Facebook");
-	
 	}
 	
+	/**
+	 * Method to send messages
+	 * 
+	 * @param Message to send
+	 * @throws Exception
+	 */
 	public void sendMessage(String message) throws Exception{
+		HtmlPage messenger = webClient.getPage("http://m.facebook.com/messages/");
 		
-		HtmlSubmitInput bmess = (HtmlSubmitInput) mainpage.getElementById("messages_jewel");
+		List<DomElement> spans = messenger.getElementsByTagName("a");
 		
-		HtmlPage page = bmess.click();
+		Iterator<DomElement> ite = spans.iterator();
+		DomElement element;
+		HtmlPage newmess = null;
 		
-		System.out.println(page.asText());
+		
+		
+		while(ite.hasNext()){
+			element = ite.next();
+			if(element.asText().contains("Nuevo mensaje")){
+				newmess = element.click();
+				System.out.println(newmess.asText());
+				break;
+			}
+		}
+		
+		System.out.println(">>>>");
+		
+		if(newmess != null){
+			// Trying to access to the textarea through the form...
+			HtmlForm form = newmess.getFormByName("fb_dtsg");
+				
+				
+			
+			
+		}
 		
 		
 	}
