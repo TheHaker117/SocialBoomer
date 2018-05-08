@@ -1,13 +1,15 @@
 import java.util.Iterator;
-import java.util.List;
 
 import com.gargoylesoftware.htmlunit.BrowserVersion;
+import com.gargoylesoftware.htmlunit.ElementNotFoundException;
 import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.html.DomElement;
+import com.gargoylesoftware.htmlunit.html.HtmlCheckBoxInput;
+import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.html.HtmlPasswordInput;
 import com.gargoylesoftware.htmlunit.html.HtmlSubmitInput;
+import com.gargoylesoftware.htmlunit.html.HtmlTextArea;
 import com.gargoylesoftware.htmlunit.html.HtmlTextInput;
 import com.gargoylesoftware.htmlunit.javascript.JavaScriptEngine;
 
@@ -58,25 +60,10 @@ public class Brain{
 		
 		
 		mainpage = blogin.click();
-		String text = mainpage.asText();
 		
 		System.out.println(mainpage.asText());
 		
-		if(text.contains("Iniciar sesión con un toque")){
-			HtmlSubmitInput acpt = (HtmlSubmitInput) mainpage.getForms().get(0).getInputByValue("Aceptar");
-			mainpage = acpt.click();
-			
-			System.out.println(mainpage.asText());
-			
-			return 0;
-		}
-		
-		else if(text.contains("Queremos asegurarnos de que tu cuenta está protegida"))
-			return -1;
-		
-		else
-			return 1;
-		
+		return 0;
 	}
 	
 	/**
@@ -86,39 +73,63 @@ public class Brain{
 	 * @throws Exception
 	 */
 	public void sendMessage(String message) throws Exception{
-		HtmlPage messenger = webClient.getPage("http://m.facebook.com/messages/");
+		HtmlPage messenger = webClient.getPage("https://m.facebook.com/messages/compose/");
 		
-		List<DomElement> spans = messenger.getElementsByTagName("a");
+		HtmlForm form = (HtmlForm) messenger.getElementById("composer_form");
+		Iterator<HtmlElement> list = form.getElementsByTagName("a").iterator();
+		HtmlElement dest = null;
 		
-		Iterator<DomElement> ite = spans.iterator();
-		DomElement element;
-		HtmlPage newmess = null;
-		
-		
-		
-		while(ite.hasNext()){
-			element = ite.next();
-			if(element.asText().contains("Nuevo mensaje")){
-				newmess = element.click();
-				System.out.println(newmess.asText());
+		while(list.hasNext()){
+			dest = list.next();
+			if(dest.asText().contains("Añadir destinatarios")){
+				messenger = setDest(dest.click());
 				break;
 			}
 		}
 		
-		System.out.println(">>>>");
+		// Just in case...
+		form = (HtmlForm) messenger.getElementById("composer_form");
 		
-		if(newmess != null){
-			// Trying to access to the textarea through the form...
-			HtmlForm form = newmess.getFormByName("fb_dtsg");
-				
-				
-			
-			
-		}
+		HtmlTextArea textarea = form.getTextAreaByName("body");
+		textarea.setText("Hola");
+		HtmlSubmitInput send = form.getInputByName("Send");
+		messenger = send.click();
+		
+		System.out.println(messenger.asText());
 		
 		
 	}
 	
+	/**
+	 * Return a Htmlpage with the destinataries setted
+	 * 
+	 * @param destinataries
+	 * @return
+	 */
+	private HtmlPage setDest(HtmlPage destinataries) throws Exception{
+		
+		// I GOT AN IDEA!!!
+		// Use a queue to obtain the destinataries. Load the friends list and get the friend's names queue
+		
+		HtmlTextInput dest = (HtmlTextInput) destinataries.getElementByName("query");
+		dest.setValueAttribute("Ariel Bravo");
+		
+		HtmlSubmitInput search = (HtmlSubmitInput) destinataries.getElementByName("search");
+		destinataries = search.click();
+		
+		// Search destinatary, in case of exception, ignore?
+		try{
+			HtmlCheckBoxInput chbx = (HtmlCheckBoxInput) destinataries.getElementByName("friend_ids[]");
+			chbx.setChecked(true);
+			HtmlSubmitInput done = (HtmlSubmitInput) destinataries.getElementByName("done");
+	
+			return done.click();
+			
+		}
+		catch(ElementNotFoundException e){
+			return null;
+		}
+	}
 	
 	
 	
