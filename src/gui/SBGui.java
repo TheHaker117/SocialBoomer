@@ -1,5 +1,6 @@
 package gui;
 
+import java.awt.Color;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -15,16 +16,18 @@ import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
+import main.Brain;
+
 public class SBGui extends JFrame implements ActionListener{
 
 	private JLabel l_email, l_pass, l_sendto;
 	private JTextField tf_email;
 	private JPasswordField pf_pass;
-	private JTextArea ta_message;
-	private JScrollPane sp_message;
+	private JTextArea ta_message, ta_log;
+	private JScrollPane sp_message, sp_log;
 	private JButton btn_login, btn_send, btn_cancel;
 	private JComboBox cbx_sendto;
-	
+	private Brain boomer;
 	
 	
 	
@@ -96,6 +99,7 @@ public class SBGui extends JFrame implements ActionListener{
 		cbx_sendto = new JComboBox<String>(new String[] {"Todos", "Solo algunos"});
 		cbx_sendto.setBounds(100, 150, 150, 25);
 		cbx_sendto.setFont(this.getFont());
+		cbx_sendto.setEnabled(false);
 		cbx_sendto.addActionListener(this);
 		
 		ta_message = new JTextArea();
@@ -103,7 +107,7 @@ public class SBGui extends JFrame implements ActionListener{
 		
 		sp_message = new JScrollPane(ta_message);
 		sp_message.setBounds(20, 190, 280, 200);
-		
+		 
 		btn_send = new JButton("Enviar");
 		btn_send.setBounds(30, 410, 100, 30);
 		btn_send.setFont(this.getFont());
@@ -113,6 +117,17 @@ public class SBGui extends JFrame implements ActionListener{
 		btn_cancel.setBounds(180, 410, 100, 30);
 		btn_cancel.setFont(this.getFont());
 		btn_cancel.addActionListener(this);
+		
+		ta_log = new JTextArea();
+		ta_log.setFont(new Font("Arial", Font.PLAIN, 16));
+		ta_log.setBackground(Color.DARK_GRAY);
+		ta_log.setForeground(Color.WHITE);
+		
+		sp_log = new JScrollPane(ta_log);
+		sp_log.setBounds(350, 20, 330, 400);
+		
+		boomer = new Brain(ta_log);
+		
 		
 		
 		
@@ -127,6 +142,7 @@ public class SBGui extends JFrame implements ActionListener{
 		this.add(sp_message);
 		this.add(btn_send);
 		this.add(btn_cancel);
+		this.add(sp_log);
 		
 	}
 	
@@ -135,9 +151,45 @@ public class SBGui extends JFrame implements ActionListener{
 	
 	
 	@Override
-	public void actionPerformed(ActionEvent arg0) {
+	public void actionPerformed(ActionEvent evnt){
 	
+		if(evnt.getSource().equals(btn_login))
+			try{
+				boomer.logIn(tf_email.getText(), pf_pass.getPassword().toString());
+			} 
+			catch (Exception e){
+				ta_log.append("#~ <<< AN ERROR HAVE BEEN OCCURRED >>>");
+				ta_log.append("\n#~ " + e.getMessage());
+			}
+			
+		else if(evnt.getSource().equals(cbx_sendto)) {}
+		
+		else if(evnt.getSource().equals(btn_send)) {
+			try {
+				
+				boomer.sendMessage(ta_message.getText());
+			} catch (Exception e) {
+				ta_log.append("#~ <<< AN ERROR HAVE BEEN OCCURRED >>>");
+				ta_log.append("\n#~ " + e.getMessage());
+			}
+		}
+			
+		
+		
 		
 	}
 	
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
