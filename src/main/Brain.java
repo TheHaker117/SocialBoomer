@@ -1,8 +1,14 @@
+package main;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Queue;
+
+import javax.swing.JTextArea;
 
 import com.gargoylesoftware.htmlunit.BrowserVersion;
 import com.gargoylesoftware.htmlunit.ElementNotFoundException;
 import com.gargoylesoftware.htmlunit.WebClient;
+import com.gargoylesoftware.htmlunit.html.DomElement;
 import com.gargoylesoftware.htmlunit.html.HtmlCheckBoxInput;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
@@ -15,22 +21,29 @@ import com.gargoylesoftware.htmlunit.javascript.JavaScriptEngine;
 
 public class Brain{
 	
-	private String user = "ale_storm@outlook.com";
-	private String pass = "343Forerunner419";
-	
 	private WebClient webClient;
 	private HtmlPage mainpage;
+	private JTextArea ta_log;
+	
+	private Queue<String> queue;
 	
 	
-	public Brain() throws Exception {
-		logIn();
-		sendMessage("");
+	public Brain(JTextArea ta_log) {
+		this.ta_log = ta_log;
 	}
 	
+	public Brain() {
 	
-	public static void main(String[] args) throws Exception{
-		Brain brain = new Brain();
 	}
+	
+	public static void main(String[] args) throws Exception {
+		Brain brn = new Brain();
+		
+		brn.logIn("ale_storm@outlook.com", "343Forerunner419");
+		brn.getFriendList(queue = new LinkedList<String>());
+		
+	}
+	
 	
 	/**
 	 * Method for login sesion
@@ -38,7 +51,7 @@ public class Brain{
 	 * @return True if login was success, else false.
 	 * @throws Exception
 	 */
-	public int logIn() throws Exception {
+	public int logIn(String user, String pass) throws Exception {
 		
 		// Only works with Firefox
 		webClient = new WebClient(BrowserVersion.FIREFOX_52);
@@ -90,8 +103,11 @@ public class Brain{
 		// Just in case...
 		form = (HtmlForm) messenger.getElementById("composer_form");
 		
+		// Sets the message in the textarea
 		HtmlTextArea textarea = form.getTextAreaByName("body");
 		textarea.setText("Hola");
+
+		// Sends the message
 		HtmlSubmitInput send = form.getInputByName("Send");
 		messenger = send.click();
 		
@@ -99,6 +115,9 @@ public class Brain{
 		
 		
 	}
+	
+	
+	
 	
 	/**
 	 * Return a Htmlpage with the destinataries setted
@@ -111,6 +130,7 @@ public class Brain{
 		// I GOT AN IDEA!!!
 		// Use a queue to obtain the destinataries. Load the friends list and get the friend's names queue
 		
+		// Sets destinatary, using friend's name
 		HtmlTextInput dest = (HtmlTextInput) destinataries.getElementByName("query");
 		dest.setValueAttribute("Ariel Bravo");
 		
@@ -124,15 +144,29 @@ public class Brain{
 			HtmlSubmitInput done = (HtmlSubmitInput) destinataries.getElementByName("done");
 	
 			return done.click();
-			
+		 	
 		}
 		catch(ElementNotFoundException e){
 			return null;
 		}
 	}
 	
-	
-	
+	public void getFriendList(Queue<String> queue) throws Exception {
+		HtmlPage friends = webClient.getPage("https://m.facebook.com/profile.php?v=friends");
+		
+		Iterator<DomElement> ite = friends.getElementsByTagName("a").iterator();
+		
+		while(ite.hasNext()){
+			DomElement temp = ite.next();
+			if(temp.asXml().contains("class=\"cd\""))
+				queue.add(temp.asText());
+		}
+		
+		if(friends.getElementById("m_more_friends") != null) {}
+			
+		// I decided... Use Recursion
+		
+	}
 	
 }
 
