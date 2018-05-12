@@ -8,7 +8,7 @@ import javax.swing.JTextArea;
 import com.gargoylesoftware.htmlunit.BrowserVersion;
 import com.gargoylesoftware.htmlunit.ElementNotFoundException;
 import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.html.DomElement;
+import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
 import com.gargoylesoftware.htmlunit.html.HtmlCheckBoxInput;
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
@@ -25,7 +25,9 @@ public class Brain{
 	private HtmlPage mainpage;
 	private JTextArea ta_log;
 	
-	private Queue<String> queue;
+	private Queue<String> queue = new LinkedList<String>();
+	private int countLimit = 0;
+	
 	
 	
 	public Brain(JTextArea ta_log) {
@@ -40,7 +42,7 @@ public class Brain{
 		Brain brn = new Brain();
 		
 		brn.logIn("ale_storm@outlook.com", "343Forerunner419");
-		brn.getFriendList(queue = new LinkedList<String>());
+		brn.getFriendList(brn.temp2());
 		
 	}
 	
@@ -130,43 +132,82 @@ public class Brain{
 		// I GOT AN IDEA!!!
 		// Use a queue to obtain the destinataries. Load the friends list and get the friend's names queue
 		
-		// Sets destinatary, using friend's name
 		HtmlTextInput dest = (HtmlTextInput) destinataries.getElementByName("query");
-		dest.setValueAttribute("Ariel Bravo");
-		
 		HtmlSubmitInput search = (HtmlSubmitInput) destinataries.getElementByName("search");
-		destinataries = search.click();
+		HtmlSubmitInput done = (HtmlSubmitInput) destinataries.getElementByName("done");
 		
-		// Search destinatary, in case of exception, ignore?
-		try{
-			HtmlCheckBoxInput chbx = (HtmlCheckBoxInput) destinataries.getElementByName("friend_ids[]");
-			chbx.setChecked(true);
-			HtmlSubmitInput done = (HtmlSubmitInput) destinataries.getElementByName("done");
-	
-			return done.click();
-		 	
+		while(!queue.isEmpty() && countLimit <= 150){
+			// Sets destinatary, using friend's name
+			dest.setValueAttribute(queue.peek());
+			
+			destinataries = search.click();
+			
+			// Try to search the destinatary, in case of exception
+			// continues with the next element of the queue
+			try{
+				HtmlCheckBoxInput chbx = (HtmlCheckBoxInput) destinataries.getElementByName("friend_ids[]");
+				chbx.setChecked(true);
+				countLimit++;
+			}
+			catch(ElementNotFoundException e){
+				// Pending...
+				continue;
+			}
 		}
-		catch(ElementNotFoundException e){
-			return null;
-		}
+		
+		
+		return done.click();
+		
 	}
 	
-	public void getFriendList(Queue<String> queue) throws Exception {
-		HtmlPage friends = webClient.getPage("https://m.facebook.com/profile.php?v=friends");
+	public HtmlPage temp2() throws Exception {
+		return webClient.getPage("https://m.facebook.com/profile.php?v=friends");
+	}
+	
+	
+	/**
+	 * Fills a empty queue with a friend's name list
+	 * 
+	 * @param friends
+	 * @throws Exception
+	 */
+	
+	public void getFriendList(HtmlPage friends) throws Exception {
 		
-		Iterator<DomElement> ite = friends.getElementsByTagName("a").iterator();
+		Iterator<HtmlAnchor> ite = friends.getAnchors().iterator();
 		
 		while(ite.hasNext()){
-			DomElement temp = ite.next();
-			if(temp.asXml().contains("class=\"cd\""))
+			HtmlAnchor temp = ite.next();
+			if(temp.asXml().contains("class=\"cd\"") || temp.asXml().contains("class=\"bp\"")){
 				queue.add(temp.asText());
+				System.out.println(temp.asText());
+			}
+				
 		}
 		
-		if(friends.getElementById("m_more_friends") != null) {}
+		try{
+			HtmlAnchor anchor = friends.getAnchorByText("Ver más amigos");
+			getFriendList((HtmlPage) anchor.click());
 			
-		// I decided... Use Recursion
-		
+		}
+		catch(ElementNotFoundException exc){
+			System.out.println(queue.size());
+		}
 	}
+	
+	/**
+	 * Returns the selected destinataries count
+	 * 
+	 * @return countLimit
+	 */
+	
+	public int getCountLimit(){
+		return countLimit;
+	}
+	
+	
+	
+	
 	
 }
 
