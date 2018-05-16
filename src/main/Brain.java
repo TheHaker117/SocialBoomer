@@ -26,9 +26,10 @@ public class Brain{
 	
 	private Queue<String> queue = new LinkedList<String>();
 	private int countLimit = 0;
+	private int waitTime = 300000;
 									
 	
-	public Brain(JTextArea ta_log) {
+	public Brain(JTextArea ta_log){
 		this.ta_log = ta_log;
 	}
 	
@@ -36,8 +37,8 @@ public class Brain{
 		this.countLimit = countLimit;
 		
 		queue.add("Ariel Bravo");
-		queue.add("Fredd Diego B");
-		queue.add("Maleny Rendon Castillo");
+		queue.add("Ana Clara González");
+		queue.add("Jenn Gon-Bauer");
 	
 		
 	}
@@ -45,15 +46,15 @@ public class Brain{
 	public static void main(String[] args) throws Exception {
 		Brain brn = new Brain(4);
 		
-		brn.logIn("feroliveros0694@gmail.com", "osmosys2018.");
-		//brn.sendMessageOneByOne("No contestar");
+		brn.logIn("ale_storm@outlook.com", "343Forerunner419");
+		brn.sendMessageOneByOne("No contestar");
 		//brn.getFriendList(brn.temp2());
 		
 	}
 	
 	
 	/**
-	 * Method for login sesion
+	 * Returns 1 if the login was successful; otherwise, if the account is blocked, it returns -1
 	 * 
 	 * @return True if login was success, else false.
 	 * @throws Exception
@@ -83,11 +84,15 @@ public class Brain{
 		
 		System.out.println(mainpage.asText());
 		
-		return 0;
+		if(mainpage.getTitleText().contains("Confirma tu identidad"))
+			return -1;
+		else
+			return 1;
+		
 	}
 	
 	/**
-	 * Method to send messages
+	 * Sends messages, one by one, to all destinataries in the queue
 	 * 
 	 * @param Message to send
 	 * @throws Exception
@@ -95,10 +100,32 @@ public class Brain{
 	public void sendMessageOneByOne(String message) throws Exception{
 //		getFriendList(webClient.getPage("https://m.facebook.com/profile.php?v=friends"));
 		
+		while(!queue.isEmpty()){
+			sendMessage(message, queue.poll());
+			
+			Thread.currentThread();
+			Thread.sleep(waitTime);
+		}
+		
+	}
+	
+	
+	/**
+	 * 
+	 * Sends a message to a single friend
+	 * 
+	 * 
+	 * @param message
+	 * @param friend
+	 * @throws Exception
+	 */
+	
+	
+	private void sendMessage(String message, String friend) throws Exception{
 		HtmlPage messenger = webClient.getPage("https://m.facebook.com/messages/compose/");
 		
 		
-		
+		// Seeks the "Anadir destinatarios" anchor
 		Iterator<HtmlAnchor> anchors = messenger.getAnchors().iterator();
 		HtmlAnchor anchor = null;
 		
@@ -109,58 +136,50 @@ public class Brain{
 			}
 		}
 		
+			
 		HtmlPage destinataries = anchor.click();
-		String friend = "";
 		
-		while(!queue.isEmpty()){
-			HtmlTextInput dest = (HtmlTextInput) destinataries.getElementByName("query");
-			HtmlSubmitInput search = (HtmlSubmitInput) destinataries.getElementByName("search");
+		HtmlTextInput dest = (HtmlTextInput) destinataries.getElementByName("query");
+		HtmlSubmitInput search = (HtmlSubmitInput) destinataries.getElementByName("search");
+			
+		dest.setValueAttribute(friend);
+		destinataries = search.click();
+			
+		try{
+			HtmlCheckBoxInput chbx = (HtmlCheckBoxInput) destinataries.getElementByName("friend_ids[]");
+			chbx.setChecked(true);
+		
+			// This must be here!!!
 			HtmlSubmitInput done = (HtmlSubmitInput) destinataries.getElementByName("done");
 			
-			dest.setValueAttribute(queue.poll());
-			destinataries = search.click();
+			messenger = done.click();
+	
+			HtmlForm form = (HtmlForm) messenger.getElementById("composer_form");
+				
+			// Sets the message in the textarea
+			HtmlTextArea textarea = form.getTextAreaByName("body");
+			textarea.setText(message);
 
-			
-			
-			try{
-				HtmlCheckBoxInput chbx = (HtmlCheckBoxInput) destinataries.getElementByName("friend_ids[]");
-				chbx.setChecked(true);
+			// Sends the message
+			HtmlSubmitInput send = form.getInputByName("Send");
+			messenger = send.click();
 				
-				messenger = done.click();
 				
-				System.out.println(messenger.asText());
-				System.out.println(queue.isEmpty());
+			System.out.println(messenger.asText());
+			System.out.println(">>> Message sended to: "  + friend);
 				
-					
-			}
-			catch(ElementNotFoundException exc){
-				// Pending
-				
-				System.out.println(">>> Element not found exception: Checkbox not found");
-				
-				continue;
-			}
-			
 		}
-		
-		
-		
-		// Just in case...
-		HtmlForm form = (HtmlForm) messenger.getElementById("composer_form");
-		
-		// Sets the message in the textarea
-		HtmlTextArea textarea = form.getTextAreaByName("body");
-		textarea.setText(message);
+			
+		catch(ElementNotFoundException exc){
+			// Pending
+			System.out.println(">>> Element not found exception: Checkbox not found");		
+		}
 
-		// Sends the message
-		HtmlSubmitInput send = form.getInputByName("Send");
-//		messenger = send.click();
-		
-		System.out.println(messenger.asText());
-		
-		System.out.println(">>> Message sended to: "  + friend);
-		
 	}
+	
+	
+	
+	
 	
 	
 	/**
@@ -238,7 +257,7 @@ public class Brain{
 			
 			// Sends the message
 			HtmlSubmitInput send = form.getInputByName("Send");
-			messenger = send.click();
+//			messenger = send.click();
 			
 			System.out.println(">>> Message sended");
 			
@@ -246,82 +265,6 @@ public class Brain{
 		}
 		
 		
-	}
-	
-	
-	/**
-	 * Return a Htmlpage with the destinataries setted
-	 * 
-	 * @param destinataries
-	 * @return
-	 */
-	private HtmlPage setDest(HtmlPage destinataries) throws Exception{
-		
-		// Load friend list, i mean, friend's name queue
-		getFriendList(webClient.getPage("https://m.facebook.com/profile.php?v=friends"));
-		
-		
-		HtmlTextInput dest = (HtmlTextInput) destinataries.getElementByName("query");
-		HtmlSubmitInput search = (HtmlSubmitInput) destinataries.getElementByName("search");
-		HtmlSubmitInput done = (HtmlSubmitInput) destinataries.getElementByName("done");
-		HtmlPage tempMess;
-		
-		/*
-		
-		while(!queue.isEmpty() && countLimit <= 150){
-			// Sets destinatary, using friend's name
-			dest.setValueAttribute(queue.poll());
-			
-			destinataries = search.click();
-			
-			
-			System.out.println(destinataries.asText());
-			
-			// Try to search the destinatary, in case of exception
-			// continues with the next element of the queue
-			try{
-				HtmlCheckBoxInput chbx = (HtmlCheckBoxInput) destinataries.getElementByName("friend_ids[]");
-				
-				if(!chbx.isChecked()){
-					chbx.setChecked(true);
-					countLimit++;
-					System.out.println(">>>>>>");
-					System.out.println(destinataries.asText());
-					
-					tempMess = done.click();
-					
-					System.out.println(tempMess.asText());
-					
-					Iterator<HtmlAnchor> anchors = tempMess.getAnchors().iterator();
-					
-					while(anchors.hasNext()){
-						HtmlAnchor anchor = anchors.next();
-						if(anchor.getAttribute("href").contains("/friends/selector/")){
-							destinataries = anchor.click();  
-							break;
-						}
-					}
-					
-				}
-			}
-			catch(ElementNotFoundException e){
-				// Pending...
-				continue;
-			}
-		}*/
-		
-		
-		
-		
-		
-		
-		
-		return done.click();
-		
-	}
-	
-	public HtmlPage temp2() throws Exception {
-		return webClient.getPage("https://m.facebook.com/profile.php?v=friends");
 	}
 	
 	
