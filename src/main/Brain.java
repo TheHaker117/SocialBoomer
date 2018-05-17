@@ -1,9 +1,11 @@
 package main;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 
 import javax.swing.JTextArea;
+import javax.swing.SwingWorker;
 
 import com.gargoylesoftware.htmlunit.BrowserVersion;
 import com.gargoylesoftware.htmlunit.ElementNotFoundException;
@@ -26,11 +28,20 @@ public class Brain{
 	
 	private Queue<String> queue = new LinkedList<String>();
 	private int countLimit = 0;
-	private int waitTime = 300000;
-									
+	private int waitTime = 60000;
+
+	private SwingWorker worker = null;
+	
+	
 	
 	public Brain(JTextArea ta_log){
 		this.ta_log = ta_log;
+		
+		queue.add("Ariel Bravo");
+		queue.add("Ana Clara González");
+		queue.add("Jenn Gon-Bauer");
+	
+		
 	}
 	
 	public Brain(int countLimit){
@@ -61,33 +72,60 @@ public class Brain{
 	 */
 	public int logIn(String user, String pass) throws Exception {
 		
-		// Only works with Firefox
-		webClient = new WebClient(BrowserVersion.FIREFOX_52);
-		webClient.setJavaScriptEngine(new JavaScriptEngine(webClient));
+		worker = new SwingWorker<Integer, String>(){
+
+			@Override
+			protected Integer doInBackground() throws Exception {
+				// Only works with Firefox
+				webClient = new WebClient(BrowserVersion.FIREFOX_52);
+				webClient.setJavaScriptEngine(new JavaScriptEngine(webClient));
+				
+				// Main page
+				HtmlPage page = webClient.getPage("https://m.facebook.com/");
+				// Login form
+				HtmlForm form = (HtmlForm) page.getElementById("login_form");
+				// Email textfield
+				HtmlTextInput tmail = (HtmlTextInput) page.getElementByName("email");
+				// Password textfield
+				HtmlPasswordInput tpass = (HtmlPasswordInput) page.getElementByName("pass");
+				// Login button
+				HtmlSubmitInput blogin = (HtmlSubmitInput) form.getInputByValue("Log In");
+				
+				tmail.setValueAttribute(user);
+				tpass.setValueAttribute(pass);
+				
+				
+				mainpage = blogin.click();
+				
+				System.out.println(mainpage.asText());
+				
+				if(mainpage.getTitleText().contains("Confirma tu identidad")){
+					publish("\n#~ Cuenta bloqueada");
+					publish("\n#~ Falló iniciar sesión...");
+					return -1;
+				}
+					
+				else{
+					publish("\n#~ Inicio de sesión exitoso");
+					return 1;
+				}
+				
+			}
+			
+			@Override
+			protected void process(List<String> chunks){
+				
+				for(String chunk : chunks)
+					ta_log.append(chunk);
+			}
+			
 		
-		// Main page
-		HtmlPage page = webClient.getPage("https://m.facebook.com/");
-		// Login form
-		HtmlForm form = (HtmlForm) page.getElementById("login_form");
-		// Email textfield
-		HtmlTextInput tmail = (HtmlTextInput) page.getElementByName("email");
-		// Password textfield
-		HtmlPasswordInput tpass = (HtmlPasswordInput) page.getElementByName("pass");
-		// Login button
-		HtmlSubmitInput blogin = (HtmlSubmitInput) form.getInputByValue("Log In");
-		
-		tmail.setValueAttribute(user);
-		tpass.setValueAttribute(pass);
+		};
 		
 		
-		mainpage = blogin.click();
+		worker.execute();
 		
-		System.out.println(mainpage.asText());
-		
-		if(mainpage.getTitleText().contains("Confirma tu identidad"))
-			return -1;
-		else
-			return 1;
+		return (Integer) worker.get();
 		
 	}
 	
@@ -98,15 +136,43 @@ public class Brain{
 	 * @throws Exception
 	 */
 	public void sendMessageOneByOne(String message) throws Exception{
-//		getFriendList(webClient.getPage("https://m.facebook.com/profile.php?v=friends"));
 		
-		while(!queue.isEmpty()){
-			sendMessage(message, queue.poll());
+		worker = new SwingWorker<Void, String>(){
+
+			@Override
+			protected Void doInBackground() throws Exception {
+				
+				publish("\n#~ Cargando lista de amigos...");
+//				getFriendList(webClient.getPage("https://m.facebook.com/profile.php?v=friends"));
+				publish("\n#~ Se encontraron " + queue.size() + " amigos en la cuenta");
+				publish("\n#~ Enviando mensajes...");
+				
+				while(!queue.isEmpty()){
+					publish(sendMessage(message, queue.poll()));
+					
+					publish("\n#~ Esperando " + waitTime/60000 + " minutos");
+					Thread.currentThread();
+					Thread.sleep(waitTime);
+				}
+				
+				publish("\n#~ Proceso finalizado");
+				publish("\n#~ Se enviaron " + countLimit + " mensajes");
+				
+				return null;
+			}
 			
-			Thread.currentThread();
-			Thread.sleep(waitTime);
-		}
+			@Override
+			protected void process(List<String> chunks){
+				
+				for(String chunk : chunks)
+					ta_log.append(chunk);
+			}
+			
+			
+		};
 		
+		worker.execute();
+				
 	}
 	
 	
@@ -117,11 +183,12 @@ public class Brain{
 	 * 
 	 * @param message
 	 * @param friend
+	 * @return 
 	 * @throws Exception
 	 */
 	
 	
-	private void sendMessage(String message, String friend) throws Exception{
+	private String sendMessage(String message, String friend) throws Exception{
 		HtmlPage messenger = webClient.getPage("https://m.facebook.com/messages/compose/");
 		
 		
@@ -162,17 +229,17 @@ public class Brain{
 
 			// Sends the message
 			HtmlSubmitInput send = form.getInputByName("Send");
-			messenger = send.click();
+//			messenger = send.click();
 				
 				
-			System.out.println(messenger.asText());
-			System.out.println(">>> Message sended to: "  + friend);
+//			System.out.println(messenger.asText());
+			return "\n#~ >>> Message sended to: "  + friend;
 				
 		}
 			
 		catch(ElementNotFoundException exc){
 			// Pending
-			System.out.println(">>> Element not found exception: Checkbox not found");		
+			return "\n#~ >>> Element not found exception: Checkbox not found";		
 		}
 
 	}
@@ -309,7 +376,13 @@ public class Brain{
 	}
 	
 	
-	
+	/**
+	 * Sets the thread time to wait between each message sended
+	 * @param time
+	 */
+	public void setWaitTime(int time){
+		waitTime = time;
+	}
 	
 	
 }
