@@ -30,38 +30,35 @@ public class Brain{
 	private int countLimit = 0;
 	private int waitTime = 60000;
 
-	private SwingWorker worker = null;
+	private SwingWorker<?, String> worker = null;
+	private boolean isStopped = false;
+	
+	private String[] exclusions = null;
 	
 	
 	
 	public Brain(JTextArea ta_log){
 		this.ta_log = ta_log;
 		
-		queue.add("Ariel Bravo");
-		queue.add("Ana Clara Gonz·lez");
-		queue.add("Jenn Gon-Bauer");
-	
+				
 		
 	}
 	
-	public Brain(int countLimit){
-		this.countLimit = countLimit;
-		
-		queue.add("Ariel Bravo");
-		queue.add("Ana Clara Gonz·lez");
-		queue.add("Jenn Gon-Bauer");
 	
-		
-	}
+	/* Try this to avoid warnings:
+	 * 
+	 * 	webClient.getOptions().setTimeout(20000);
+        webClient.getOptions().setThrowExceptionOnScriptError(false);
+        webClient.getOptions().setThrowExceptionOnFailingStatusCode(false);
+        webClient.getOptions().setCssEnabled(false);
+        webClient.getOptions().setJavaScriptEnabled(true);
+        webClient.getOptions().setUseInsecureSSL(true);
+        webClient.getOptions().setRedirectEnabled(true);
+	 * 
+	 */
 	
-	public static void main(String[] args) throws Exception {
-		Brain brn = new Brain(4);
-		
-		brn.logIn("ale_storm@outlook.com", "343Forerunner419");
-		brn.sendMessageOneByOne("No contestar");
-		//brn.getFriendList(brn.temp2());
-		
-	}
+	
+	
 	
 	
 	/**
@@ -76,6 +73,9 @@ public class Brain{
 
 			@Override
 			protected Integer doInBackground() throws Exception {
+				
+				publish("\n#~ Iniciando...");
+				
 				// Only works with Firefox
 				webClient = new WebClient(BrowserVersion.FIREFOX_52);
 				webClient.setJavaScriptEngine(new JavaScriptEngine(webClient));
@@ -101,12 +101,26 @@ public class Brain{
 				
 				if(mainpage.getTitleText().contains("Confirma tu identidad")){
 					publish("\n#~ Cuenta bloqueada");
-					publish("\n#~ FallÛ iniciar sesiÛn...");
+					publish("\n#~ Fall√≥ iniciar sesi√≥n...");
 					return -1;
 				}
-					
+				
+				else if(mainpage.asText().contains("Your account has been disabled")){
+					publish("\n#~ Cuenta inhabilitada");
+					publish("\n#~ Fall√≥ iniciar sesi√≥n...");
+					return -1;
+				}
+				
 				else{
-					publish("\n#~ Inicio de sesiÛn exitoso");
+					publish("\n#~ Inicio de sesi√≥n exitoso");
+					
+					publish("\n#~ Cargando lista de amigos...");
+					
+					getFriendList(webClient.getPage("https://m.facebook.com/profile.php?v=friends"));
+					
+					publish("\n#~ Se encontraron " + queue.size() + " amigos en la cuenta");
+					
+					
 					return 1;
 				}
 				
@@ -142,21 +156,33 @@ public class Brain{
 			@Override
 			protected Void doInBackground() throws Exception {
 				
-				publish("\n#~ Cargando lista de amigos...");
-//				getFriendList(webClient.getPage("https://m.facebook.com/profile.php?v=friends"));
-				publish("\n#~ Se encontraron " + queue.size() + " amigos en la cuenta");
 				publish("\n#~ Enviando mensajes...");
 				
-				while(!queue.isEmpty()){
-					publish(sendMessage(message, queue.poll()));
+				while(!queue.isEmpty() && !isStopped){
 					
-					publish("\n#~ Esperando " + waitTime/60000 + " minutos");
-					Thread.currentThread();
-					Thread.sleep(waitTime);
+					if(!isExclusion(queue.peek())){
+						publish(sendMessage(message, queue.poll()));
+						publish("\n#~ Esperando " + waitTime/60000 + " minutos");
+						Thread.currentThread();
+						Thread.sleep(waitTime);
+					}
+					else
+						publish("\n#~ Exclusi√≥n: " + queue.poll());
+					
+					
 				}
 				
-				publish("\n#~ Proceso finalizado");
-				publish("\n#~ Se enviaron " + countLimit + " mensajes");
+				if(isStopped){
+					publish("\n#~ Proceso detenido...");
+					publish("\n#~ Se enviaron " + countLimit + " mensajes");
+				}
+				
+				else{
+					publish("\n#~ Proceso finalizado");
+					publish("\n#~ Se enviaron " + countLimit + " mensajes");
+				}
+				
+				
 				
 				return null;
 			}
@@ -172,6 +198,7 @@ public class Brain{
 		};
 		
 		worker.execute();
+		
 				
 	}
 	
@@ -229,10 +256,11 @@ public class Brain{
 
 			// Sends the message
 			HtmlSubmitInput send = form.getInputByName("Send");
-//			messenger = send.click();
+			messenger = send.click();
 				
 				
 //			System.out.println(messenger.asText());
+			countLimit++;
 			return "\n#~ >>> Message sended to: "  + friend;
 				
 		}
@@ -282,7 +310,7 @@ public class Brain{
 			
 			HtmlTextInput dest = (HtmlTextInput) destinataries.getElementByName("query");
 			HtmlSubmitInput search = (HtmlSubmitInput) destinataries.getElementByName("search");
-			HtmlSubmitInput done = (HtmlSubmitInput) destinataries.getElementByName("done");
+			
 			
 			dest.setValueAttribute(queue.poll());
 			destinataries = search.click();
@@ -293,6 +321,7 @@ public class Brain{
 				chbx.setChecked(true);
 				counting++;
 				
+				HtmlSubmitInput done = (HtmlSubmitInput) destinataries.getElementByName("done");
 				messenger = done.click();
 				
 				System.out.println(messenger.asText());
@@ -356,7 +385,7 @@ public class Brain{
 		}
 		
 		try{
-			HtmlAnchor anchor = friends.getAnchorByText("Ver m·s amigos");
+			HtmlAnchor anchor = friends.getAnchorByText("Ver m√°s amigos");
 			getFriendList((HtmlPage) anchor.click());
 			
 		}
@@ -384,6 +413,53 @@ public class Brain{
 		waitTime = time;
 	}
 	
+	/**
+	 * Stops the messages sending
+	 * 
+	 */
+	
+	public void stop(){
+		isStopped = true;
+	}
+	
+	/**
+	 * Resumes the messages sending
+	 * 
+	 */
+	
+	public void resume(){
+		isStopped = false;
+	}
+	
+	
+	/**
+	 * Sets the exclusion list with a given list
+	 * 
+	 * @param exclist
+	 */
+	
+	private void setExclusionList(String[] exclist){
+		exclusions = exclist.clone();
+	}
+	
+	
+	/**
+	 * Return true is the name is in the exclusion list
+	 * 
+	 * @param name
+	 * @return
+	 */
+	
+	private boolean isExclusion(String name){
+		
+		for(int i = 0; i < exclusions.length; i++){
+			if(exclusions[i].contains(name))
+				return true;
+		}
+		
+		return false;
+		
+	}
 	
 }
 
