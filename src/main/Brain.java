@@ -56,6 +56,7 @@ public class Brain{
 	private List<String> sended = new ArrayList<String>();
 	private String[] exclusions = null;
 	
+	// License
 	private final String date_build = "2018-05-30";
 	private final int EXPIRATION_DAYS = 15;
 	
@@ -68,6 +69,13 @@ public class Brain{
 		
 	}
 
+	/**
+	 * 
+	 * Verify is the license still being valid
+	 * 
+	 * @return
+	 * @throws Exception
+	 */
 	
 	public int checkLicense() throws Exception{
 
@@ -170,7 +178,7 @@ public class Brain{
 					publish("\n#~ Inicio de sesión exitoso"
 							+ "\n#~ Cargando lista de amigos...");
 					
-				//	getFriendList(webClient.getPage("https://m.facebook.com/profile.php?v=friends"));
+					getFriendList(webClient.getPage("https://m.facebook.com/profile.php?v=friends"));
 					
 					publish("\n#~ Se encontraron " + queue.size() + " amigos en la cuenta");
 					
