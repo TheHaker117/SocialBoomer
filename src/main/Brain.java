@@ -1,4 +1,20 @@
 package main;
+import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -12,6 +28,7 @@ import com.gargoylesoftware.htmlunit.ElementNotFoundException;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
 import com.gargoylesoftware.htmlunit.html.HtmlCheckBoxInput;
+import com.gargoylesoftware.htmlunit.html.HtmlFileInput;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.html.HtmlPasswordInput;
@@ -25,24 +42,49 @@ public class Brain{
 	private WebClient webClient;
 	private HtmlPage mainpage;
 	private JTextArea ta_log;
+	private SwingWorker<?, String> worker = null;
 	
-	private Queue<String> queue = new LinkedList<String>();
 	private int countLimit = 0;
 	private int waitTime = 60000;
 
-	private SwingWorker<?, String> worker = null;
 	private boolean isStopped = false;
+	private boolean isPhotoSelected = false; 
 	
+	private	String photopath = null;
+	
+	private Queue<String> queue = new LinkedList<String>();
+	private List<String> sended = new ArrayList<String>();
 	private String[] exclusions = null;
+	
+	private final String date_build = "2018-05-30";
+	private final int EXPIRATION_DAYS = 15;
 	
 	
 	
 	public Brain(JTextArea ta_log){
+		
 		this.ta_log = ta_log;
 		
-				
 		
 	}
+
+	
+	public int checkLicense() throws Exception{
+
+		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+		Calendar cal = Calendar.getInstance();
+		
+		Date build_date = dateFormat.parse(date_build);
+		Date nowdays = dateFormat.parse(dateFormat.format(cal.getTime()));
+
+		int remain = (int) ((nowdays.getTime() - build_date.getTime())/86400000);
+		
+		if(remain > EXPIRATION_DAYS)
+			return -1;
+		else
+			return 1;
+	}
+	
 	
 	
 	/* Try this to avoid warnings:
@@ -62,17 +104,16 @@ public class Brain{
 	
 	
 	/**
-	 * Returns 1 if the login was successful; otherwise, if the account is blocked, it returns -1
+	 * Returns 1 if the log in was successful; otherwise, if the account is blocked, it returns -1
 	 * 
-	 * @return True if login was success, else false.
 	 * @throws Exception
 	 */
-	public int logIn(String user, String pass) throws Exception {
+	public void logIn(String user, String pass) throws Exception {
 		
-		worker = new SwingWorker<Integer, String>(){
+		worker = new SwingWorker<Void, String>(){
 
 			@Override
-			protected Integer doInBackground() throws Exception {
+			protected Void doInBackground() throws Exception {
 				
 				publish("\n#~ Iniciando...");
 				
@@ -99,30 +140,42 @@ public class Brain{
 				
 				System.out.println(mainpage.asText());
 				
-				if(mainpage.getTitleText().contains("Confirma tu identidad")){
-					publish("\n#~ Cuenta bloqueada");
-					publish("\n#~ Falló iniciar sesión...");
-					return -1;
+				
+				if(mainpage.asText().contains("Confirma tu identidad")
+						|| mainpage.asText().contains("Confirm your identity")){
+					publish("\n#~ Cuenta bloqueada"
+							+ "\n#~ Falló iniciar sesión...");
+					
 				}
 				
-				else if(mainpage.asText().contains("Your account has been disabled")){
-					publish("\n#~ Cuenta inhabilitada");
-					publish("\n#~ Falló iniciar sesión...");
-					return -1;
+				else if(mainpage.asText().contains("Ingresar número de celular")
+						|| mainpage.asText().contains("Enter Mobile Number")){
+					publish("\n#~ Cuenta bloqueada: Confirmar número celular"
+							+ "\n#~ Falló iniciar sesión...");
+					
+				}
+				
+				else if(mainpage.asText().contains("Tu cuenta ha sido desactivada")
+						|| mainpage.asText().contains("Your account has been disabled")){
+					publish("\n#~ Cuenta inhabilitada"
+							+ "\n#~ Falló iniciar sesión...");
+				}
+				
+				else if(mainpage.asText().contains("La contraseña que has introducido es incorrecta")
+						|| mainpage.asText().contains("The password you entered is incorrect")){
+					publish("\n#~ Contraseña incorrecta");
 				}
 				
 				else{
-					publish("\n#~ Inicio de sesión exitoso");
+					publish("\n#~ Inicio de sesión exitoso"
+							+ "\n#~ Cargando lista de amigos...");
 					
-					publish("\n#~ Cargando lista de amigos...");
-					
-					getFriendList(webClient.getPage("https://m.facebook.com/profile.php?v=friends"));
+				//	getFriendList(webClient.getPage("https://m.facebook.com/profile.php?v=friends"));
 					
 					publish("\n#~ Se encontraron " + queue.size() + " amigos en la cuenta");
 					
-					
-					return 1;
 				}
+				return null;
 				
 			}
 			
@@ -139,8 +192,6 @@ public class Brain{
 		
 		worker.execute();
 		
-		return (Integer) worker.get();
-		
 	}
 	
 	/**
@@ -151,21 +202,36 @@ public class Brain{
 	 */
 	public void sendMessageOneByOne(String message) throws Exception{
 		
+		
 		worker = new SwingWorker<Void, String>(){
 
 			@Override
 			protected Void doInBackground() throws Exception {
+				
 				
 				publish("\n#~ Enviando mensajes...");
 				
 				while(!queue.isEmpty() && !isStopped){
 					
 					if(!isExclusion(queue.peek())){
+						// Adding to the sended list
+						sended.add(queue.peek());
+						
+						// Send message and publish the log
 						publish(sendMessage(message, queue.poll()));
-						publish("\n#~ Esperando " + waitTime/60000 + " minutos");
-						Thread.currentThread();
-						Thread.sleep(waitTime);
+						publish("\n#~ Mensajes enviados: " + sended.size()
+								+ "\n#~ Restantes: " + queue.size());
+						
+						
+						// Wait time
+						if(!queue.isEmpty()){
+							publish("\n#~ Esperando " + waitTime/60000 + " minutos");
+							Thread.currentThread();
+							Thread.sleep(waitTime);
+						}
+						
 					}
+					// If is an exclusion, polls the element from the queue and publish the log
 					else
 						publish("\n#~ Exclusión: " + queue.poll());
 					
@@ -175,14 +241,14 @@ public class Brain{
 				if(isStopped){
 					publish("\n#~ Proceso detenido...");
 					publish("\n#~ Se enviaron " + countLimit + " mensajes");
+				
 				}
 				
 				else{
 					publish("\n#~ Proceso finalizado");
 					publish("\n#~ Se enviaron " + countLimit + " mensajes");
+					
 				}
-				
-				
 				
 				return null;
 			}
@@ -199,7 +265,6 @@ public class Brain{
 		
 		worker.execute();
 		
-				
 	}
 	
 	
@@ -213,8 +278,6 @@ public class Brain{
 	 * @return 
 	 * @throws Exception
 	 */
-	
-	
 	private String sendMessage(String message, String friend) throws Exception{
 		HtmlPage messenger = webClient.getPage("https://m.facebook.com/messages/compose/");
 		
@@ -253,6 +316,28 @@ public class Brain{
 			// Sets the message in the textarea
 			HtmlTextArea textarea = form.getTextAreaByName("body");
 			textarea.setText(message);
+			
+			if(isPhotoSelected){
+				HtmlFileInput input = (HtmlFileInput) messenger.getElementByName("file1");
+				input.setValueAttribute(photopath);
+				input.setContentType("multipart/form-data");
+				
+				Iterator<HtmlForm> forms = messenger.getForms().iterator();
+				HtmlSubmitInput sendphoto = null;
+				
+				while(forms.hasNext()){
+					HtmlForm photoform = forms.next();
+					if(photoform.getActionAttribute().contains("upload.facebook.com")){
+						sendphoto = photoform.getInputByValue("Enviar fotos");
+						System.out.println(messenger.asText());
+						sendphoto.click();
+						break;
+					}
+				}
+				
+				
+			}
+				
 
 			// Sends the message
 			HtmlSubmitInput send = form.getInputByName("Send");
@@ -284,8 +369,6 @@ public class Brain{
 	 * @param message
 	 * @throws Exception
 	 */
-	
-	
 	public void sendMessageByGroup(String message) throws Exception{
 		// Load friend list, i mean, friend's name queue
 	//	getFriendList(webClient.getPage("https://m.facebook.com/profile.php?v=friends"));
@@ -370,7 +453,6 @@ public class Brain{
 	 * @param friends
 	 * @throws Exception
 	 */
-	
 	public void getFriendList(HtmlPage friends) throws Exception {
 		
 		Iterator<HtmlAnchor> ite = friends.getAnchors().iterator();
@@ -381,16 +463,16 @@ public class Brain{
 				queue.add(temp.asText());
 				System.out.println(temp.asText());
 			}
-				
 		}
 		
 		try{
+			
 			HtmlAnchor anchor = friends.getAnchorByText("Ver más amigos");
 			getFriendList((HtmlPage) anchor.click());
 			
 		}
 		catch(ElementNotFoundException exc){
-			System.out.println(queue.size());
+			System.out.println("No se encontró el jodido botón");
 		}
 	}
 	
@@ -399,7 +481,6 @@ public class Brain{
 	 * 
 	 * @return countLimit
 	 */
-	
 	public int getCountLimit(){
 		return countLimit;
 	}
@@ -417,16 +498,15 @@ public class Brain{
 	 * Stops the messages sending
 	 * 
 	 */
-	
-	public void stop(){
+	public void pause(){
 		isStopped = true;
+		
 	}
 	
 	/**
 	 * Resumes the messages sending
 	 * 
 	 */
-	
 	public void resume(){
 		isStopped = false;
 	}
@@ -437,7 +517,6 @@ public class Brain{
 	 * 
 	 * @param exclist
 	 */
-	
 	private void setExclusionList(String[] exclist){
 		exclusions = exclist.clone();
 	}
@@ -452,13 +531,246 @@ public class Brain{
 	
 	private boolean isExclusion(String name){
 		
-		for(int i = 0; i < exclusions.length; i++){
-			if(exclusions[i].contains(name))
-				return true;
-		}
+		if(exclusions != null)
+			for(int i = 0; i < exclusions.length; i++){
+				if(exclusions[i].contains(name))
+					return true;
+			}
 		
 		return false;
 		
+	}
+	
+	/**
+	 * It must generates the excel report, at least, generates the information
+	 * 
+	 */
+	
+	public void generateReport(){
+		
+	}
+	
+	
+	/**
+	 * Close the webClient and thus log out the session
+	 * 
+	 */
+	public void logOut(){
+		webClient.close();
+		
+		queue = new LinkedList<String>();
+		sended = new ArrayList<String>();
+		exclusions = null;
+		countLimit = 0;
+	}
+	
+	
+	public void setPhoto(String path){
+		
+		isPhotoSelected = true;
+		photopath = path.replace("\\", "/");
+		
+	}
+	
+	
+	/**
+	 * Resets the friend list loading the friends page
+	 * 
+	 * @throws Exception
+	 */
+	public void reload() throws Exception{
+		
+		worker = new SwingWorker<Void, String>(){
+
+			@Override
+			protected Void doInBackground() throws Exception {
+				
+				queue = new LinkedList<String>();
+				
+				publish("\n#~ Cargando lista de amigos...");
+				
+				getFriendList(webClient.getPage("https://m.facebook.com/profile.php?v=friends"));
+				
+				publish("\n#~ Se encontraron " + queue.size() + " amigos en la cuenta");
+				
+				return null;
+			}
+			
+			@Override
+			protected void process(List<String> chunks){
+				
+				for(String chunk : chunks)
+					ta_log.append(chunk);
+				
+			}
+			
+		};
+		
+		worker.execute();
+			
+		
+	}
+	
+	/**
+	 * Generates a temp file with the sended list data
+	 * 
+	 * @param path
+	 */
+	public void makeTemporaryFiles(String path){
+		
+		worker = new SwingWorker<Void, String>(){
+
+			@Override
+			protected Void doInBackground() throws Exception {
+
+				try{
+					
+					publish("\n#~ Generando archivo sended_data.tmp");
+					
+					ArrayList<String> saveprocess = new ArrayList<String>();
+					
+					// Adding the exclusions list
+					if(exclusions != null)
+						saveprocess.addAll(Arrays.asList(exclusions));
+					
+					// Adding the sended list
+					if(!sended.isEmpty())
+						saveprocess.addAll(Arrays.asList(sended.toArray(new String[] {})));
+					
+					
+					File temp = new File(path.replace("\\", "/") + "/sended_data.tmp");
+					
+					BufferedWriter writer = new BufferedWriter(new FileWriter(temp));
+					
+					writer.write(Arrays.toString(toByteArray(saveprocess)));
+					writer.close();
+					
+					publish("\n#~ Archivo generado satisfactoriamente");
+					
+				}catch(Exception exc){
+					publish("\n#~ <<< NO SE PUDO CREAR sended_data.tmp >>>"
+							+ "\n#~ " + exc.getMessage());
+				}
+				
+				return null;
+			}
+			
+			@Override
+			protected void process(List<String> chunks){
+				
+				for(String chunk : chunks)
+					ta_log.append(chunk);
+			}
+			
+			
+		};
+		
+		worker.execute();
+	
+		
+	}
+	
+	/**
+	 * Sets the exclusion list with the temp file data
+	 * 
+	 * @param path
+	 */
+	public void loadSavedData(String path){
+		
+		worker = new SwingWorker<Void, String>(){
+
+			@Override
+			protected Void doInBackground() throws Exception {
+			
+				String strb = Files.readAllLines(Paths.get(path.replace("\\", "/"))).get(0);
+				strb = strb.replace("[", "").replace("]", "").replace(" ", "");
+				String[] array = strb.split(",");
+				byte[] bytes = new byte[array.length];
+				
+				for(int i = 0; i < array.length; i++)
+					bytes[i] = (Byte.valueOf(array[i]));
+				
+				
+				ArrayList<String> list = (ArrayList<String>) toObject(bytes);
+				
+				setExclusionList(list.toArray(new String[] {}));
+				
+				return null;
+			}
+			
+			@Override
+			protected void process(List<String> chunks){
+				
+				for(String chunk : chunks)
+					ta_log.append(chunk);
+			}
+			
+		};
+		
+		worker.execute();
+		
+	}
+	
+	
+	/**
+	 * Makes a conversion from a Java Object to a bytes array
+	 * 
+	 * @param obj
+	 * @return bytes array
+	 * @throws IOException
+	 */
+	private byte[] toByteArray(Object obj) throws IOException {
+        byte[] bytes = null;
+        ByteArrayOutputStream bos = null;
+        ObjectOutputStream oos = null;
+        
+        try{
+            bos = new ByteArrayOutputStream();
+            oos = new ObjectOutputStream(bos);
+            oos.writeObject(obj);
+            oos.flush();
+            bytes = bos.toByteArray();
+            
+        } finally{
+            if(oos != null)
+                oos.close();
+            
+            if(bos != null)
+                bos.close();
+            
+        }
+        
+        return bytes;
+    }
+	
+	
+	/**
+	 * Makes a conversion from a bytes array to a Java Object
+	 * 
+	 * @param bytes
+	 * @return	Object
+	 * @throws Exception
+	 */
+	public Object toObject(byte[] bytes) throws Exception{
+		
+		Object obj = null;
+		ByteArrayInputStream bis = null;
+		ObjectInputStream ois = null;
+		
+		try{
+			bis = new ByteArrayInputStream(bytes);
+			ois = new ObjectInputStream(bis);
+			obj = ois.readObject();
+		} finally{
+			if(bis != null)
+				bis.close();
+			
+			if(ois != null)
+				ois.close();
+			
+		}
+		
+		return obj;
 	}
 	
 }
