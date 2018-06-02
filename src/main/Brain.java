@@ -20,6 +20,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingWorker;
 
@@ -51,13 +53,17 @@ public class Brain{
 	private boolean isPhotoSelected = false; 
 	
 	private	String photopath = null;
+	private String msg = null;
 	
 	private Queue<String> queue = new LinkedList<String>();
+	private List<String[]> exl_sended = new ArrayList<String[]>();
+	private List<String[]> exl_friends = new ArrayList<String[]>();
 	private List<String> sended = new ArrayList<String>();
 	private String[] exclusions = null;
 	
 	// License
 	private final String date_build = "2018-05-30";
+	private  String date_run = null; 
 	private final int EXPIRATION_DAYS = 15;
 	
 	
@@ -65,7 +71,6 @@ public class Brain{
 	public Brain(JTextArea ta_log){
 		
 		this.ta_log = ta_log;
-		
 		
 	}
 
@@ -83,7 +88,8 @@ public class Brain{
 		Calendar cal = Calendar.getInstance();
 		
 		Date build_date = dateFormat.parse(date_build);
-		Date nowdays = dateFormat.parse(dateFormat.format(cal.getTime()));
+		date_run = dateFormat.format(cal.getTime());
+		Date nowdays = dateFormat.parse(date_run);
 
 		int remain = (int) ((nowdays.getTime() - build_date.getTime())/86400000);
 		
@@ -175,6 +181,8 @@ public class Brain{
 				}
 				
 				else{
+					
+					
 					publish("\n#~ Inicio de sesión exitoso"
 							+ "\n#~ Cargando lista de amigos...");
 					
@@ -210,6 +218,7 @@ public class Brain{
 	 */
 	public void sendMessageOneByOne(String message) throws Exception{
 		
+		msg = message;
 		
 		worker = new SwingWorker<Void, String>(){
 
@@ -469,7 +478,8 @@ public class Brain{
 			HtmlAnchor temp = ite.next();
 			if(temp.getAttribute("href").contains("fr_tab")){
 				queue.add(temp.asText());
-				System.out.println(temp.asText());
+				// [Friend name, facebook link]
+				exl_friends.add(new String[] {temp.asText(), "https://www.facebook.com" + temp.getHrefAttribute()});
 			}
 		}
 		
@@ -554,9 +564,77 @@ public class Brain{
 	 * 
 	 */
 	
-	public void generateReport(){
+	public void generateReport(String exlpath, JFrame parent){
+		
+		worker = new SwingWorker<Void, String>(){
+
+			@Override
+			protected Void doInBackground() throws Exception {
+				
+				publish("\n#~ Exportando datos a excel...");
+		
+				String username = ((HtmlPage) webClient.getPage("https://m.facebook.com/profile.php")).getTitleText();
+				
+				ExcelReportFormat excl = new ExcelReportFormat(username, date_run, msg, "VISTO");
+				
+				setExlSendedList();
+				
+				System.out.println(exl_sended.size());
+				
+				excl.createExcel(exl_sended);
+				excl.writeExcel(exlpath);
+				
+				publish("\n#~ Archivo producido satisfactoriamente");
+				
+				return null;
+			}
+			
+			@Override
+			protected void process(List<String> chunks){
+				
+				for(String str : chunks){
+					ta_log.append(str);
+				}
+			}
+			
+			@Override
+			protected void done(){
+				JOptionPane.showMessageDialog(parent, "Se ha producido el archivo", 
+						"Proceso finalizado", JOptionPane.INFORMATION_MESSAGE);
+				
+			}
+			
+		};
+		
+		worker.execute();
+		
 		
 	}
+	
+	
+	public void setExlSendedList(){
+		
+		exl_sended = new ArrayList<String[]>();
+		Iterator<String> ite = sended.iterator();
+		
+		while(ite.hasNext()){
+			String name = ite.next();
+			exl_sended.add(new String[] {name, getLink(name)});
+		}
+		
+	}
+	
+	private String getLink(String name){
+		
+		for(int i = 0; i < exl_friends.size(); i++){
+			if(exl_friends.get(i)[0].contains(name))
+				return exl_friends.get(i)[1];
+		}
+		
+		return null;
+		
+	}
+	
 	
 	
 	/**
@@ -780,6 +858,9 @@ public class Brain{
 		
 		return obj;
 	}
+	
+	
+	
 	
 }
 
