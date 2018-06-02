@@ -27,5 +27,12 @@
 	<classpathentry kind="lib" path="C:/Users/Osmosys 2/Desktop/SocialBoomer/htmlunit-2.30/lib/xalan-2.7.2.jar"/>
 	<classpathentry kind="lib" path="C:/Users/Osmosys 2/Desktop/SocialBoomer/htmlunit-2.30/lib/xercesImpl-2.11.0.jar"/>
 	<classpathentry kind="lib" path="C:/Users/Osmosys 2/Desktop/SocialBoomer/htmlunit-2.30/lib/xml-apis-1.4.01.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Osmosys 2/Downloads/poi-3.17/poi-3.17.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Osmosys 2/Downloads/poi-3.17/poi-excelant-3.17.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Osmosys 2/Downloads/poi-3.17/poi-ooxml-3.17.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Osmosys 2/Downloads/poi-3.17/poi-ooxml-schemas-3.17.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Osmosys 2/Downloads/poi-3.17/poi-scratchpad-3.17.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Osmosys 2/Downloads/poi-3.17/lib/commons-collections4-4.1.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Osmosys 2/Downloads/poi-3.17/ooxml-lib/xmlbeans-2.6.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
