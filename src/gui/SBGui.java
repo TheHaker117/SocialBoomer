@@ -238,7 +238,7 @@ public class SBGui extends JFrame implements ActionListener{
 		pnl_log.add(btn_save);
 		pnl_log.add(btn_load);
 		pnl_log.add(btn_clear);
-//		pnl_log.add(btn_export);
+		pnl_log.add(btn_export);
 		pnl_log.add(btn_exit);
 		
 		
@@ -285,7 +285,7 @@ public class SBGui extends JFrame implements ActionListener{
 		btn_save.setEnabled(value); 
 		btn_load.setEnabled(value);
 		btn_clear.setEnabled(value);
-//		btn_export.setEnabled(value);
+		btn_export.setEnabled(value);
 		
 		
 		
@@ -382,10 +382,10 @@ public class SBGui extends JFrame implements ActionListener{
 				boomer.makeTemporaryFiles(chooser.getSelectedFile().getPath());
 			
 			else if(val == JFileChooser.CANCEL_OPTION)
-				JOptionPane.showMessageDialog(this, "No se ha seleccionado ningún archivo",	"Advertencia", JOptionPane.WARNING_MESSAGE);
+				JOptionPane.showMessageDialog(this, "No se ha seleccionado ningún directorio",	"Advertencia", JOptionPane.WARNING_MESSAGE);
 			
 			else 
-				JOptionPane.showMessageDialog(this, "No se ha podido cargar el archivo",	"Error", JOptionPane.ERROR_MESSAGE);
+				JOptionPane.showMessageDialog(this, "No se ha podido guardar el archivo",	"Error", JOptionPane.ERROR_MESSAGE);
 			
 		}
 		
@@ -413,7 +413,22 @@ public class SBGui extends JFrame implements ActionListener{
 		else if(evnt.getSource().equals(btn_clear))
 			ta_log.setText("");
 		
-		else if(evnt.getSource().equals(btn_export));
+		else if(evnt.getSource().equals(btn_export)) {
+			JFileChooser chooser = new JFileChooser();
+			chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+			int val = chooser.showSaveDialog(this);
+			
+			
+			if(val == JFileChooser.APPROVE_OPTION)
+				boomer.generateReport(chooser.getSelectedFile().getPath(), this);
+			
+			else if(val == JFileChooser.CANCEL_OPTION)
+				JOptionPane.showMessageDialog(this, "No se ha seleccionado ningún directorio",	"Advertencia", JOptionPane.WARNING_MESSAGE);
+			
+			else 
+				JOptionPane.showMessageDialog(this, "No se ha podido guardar el archivo",	"Error", JOptionPane.ERROR_MESSAGE);
+			
+		}
 			
 		
 		else if(evnt.getSource().equals(btn_exit))
@@ -426,7 +441,7 @@ public class SBGui extends JFrame implements ActionListener{
 		else if(evnt.getSource().equals(btn_photo)){
 			JFileChooser chooser = new JFileChooser();
 			chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-			chooser.setFileFilter(new FileNameExtensionFilter("JPG & GIF", "jpg", "gif"));
+			chooser.setFileFilter(new FileNameExtensionFilter("Images", "jpg", "jpeg", "gif", "png"));
 			int val = chooser.showOpenDialog(this);
 			
 			if(val == JFileChooser.APPROVE_OPTION){
