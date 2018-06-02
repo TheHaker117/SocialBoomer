@@ -1,3 +1,18 @@
+/**
+ * TheHaker117 License
+ * SocialBoomer 1.0.0
+ * 
+ * Copyright 2018 Ariel Bravo
+ * 
+ * This code was developed by Ariel Bravo (TheHaker117) on May - June 2018
+ * 
+ * The purpose of this software is strictly educative, cannot be use to lucrative or malicious purposes.
+ * 
+ * Last build Saturday June 02 2018
+ * 
+ */
+
+
 package main;
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
@@ -62,7 +77,7 @@ public class Brain{
 	private String[] exclusions = null;
 	
 	// License
-	private final String date_build = "2018-05-30";
+	private final String date_build = "2018-06-02";
 	private  String date_run = null; 
 	private final int EXPIRATION_DAYS = 15;
 	

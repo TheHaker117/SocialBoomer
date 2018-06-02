@@ -1,3 +1,17 @@
+/**
+ * TheHaker117 License
+ * SocialBoomer 1.0.0
+ * 
+ * Copyright 2018 Ariel Bravo
+ * 
+ * This code was developed by Ariel Bravo (TheHaker117) on May - June 2018
+ * 
+ * The purpose of this software is strictly educative, cannot be use to lucrative or malicious purposes.
+ * 
+ * Last build Saturday June 02 2018
+ * 
+ */
+
 package gui;
 
 import java.awt.Font;
