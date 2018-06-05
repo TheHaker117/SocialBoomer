@@ -68,7 +68,6 @@ public class Brain{
 	private boolean isPhotoSelected = false; 
 	
 	private	String photopath = null;
-	private String msg = null;
 	
 	private Queue<String> queue = new LinkedList<String>();
 	private List<String[]> exl_sended = new ArrayList<String[]>();
@@ -79,7 +78,7 @@ public class Brain{
 	// License
 	private final String date_build = "2018-06-02";
 	private  String date_run = null; 
-	private final int EXPIRATION_DAYS = 15;
+	private final int EXPIRATION_DAYS = 21;
 	
 	
 	
@@ -232,8 +231,6 @@ public class Brain{
 	 * @throws Exception
 	 */
 	public void sendMessageOneByOne(String message) throws Exception{
-		
-		msg = message;
 		
 		worker = new SwingWorker<Void, String>(){
 
@@ -551,7 +548,27 @@ public class Brain{
 	 * @param exclist
 	 */
 	private void setExclusionList(String[] exclist){
-		exclusions = exclist.clone();
+		worker = new SwingWorker<Void, String>(){
+
+			@Override
+			protected Void doInBackground() throws Exception {
+				exclusions = exclist.clone();
+				
+				publish("\n#~ Se han añadido " + exclist.length + " elementos a la lista de exclusión");
+				
+				return null;
+			}
+			
+			@Override
+			protected void process(List<String> chunks){
+				for(String chunk : chunks)
+					ta_log.append(chunk);
+			}
+			
+		};
+		
+		worker.execute();
+		
 	}
 	
 	
@@ -579,7 +596,7 @@ public class Brain{
 	 * 
 	 */
 	
-	public void generateReport(String exlpath, JFrame parent){
+	public void generateReport(String exlpath, String mess, JFrame parent){
 		
 		worker = new SwingWorker<Void, String>(){
 
@@ -590,7 +607,7 @@ public class Brain{
 		
 				String username = ((HtmlPage) webClient.getPage("https://m.facebook.com/profile.php")).getTitleText();
 				
-				ExcelReportFormat excl = new ExcelReportFormat(username, date_run, msg, "VISTO");
+				ExcelReportFormat excl = new ExcelReportFormat(username, date_run, mess, "VISTO");
 				
 				setExlSendedList();
 				
