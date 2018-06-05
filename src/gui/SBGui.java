@@ -434,7 +434,7 @@ public class SBGui extends JFrame implements ActionListener{
 			
 			
 			if(val == JFileChooser.APPROVE_OPTION)
-				boomer.generateReport(chooser.getSelectedFile().getPath(), this);
+				boomer.generateReport(chooser.getSelectedFile().getPath(), ta_message.getText(),  this);
 			
 			else if(val == JFileChooser.CANCEL_OPTION)
 				JOptionPane.showMessageDialog(this, "No se ha seleccionado ningún directorio",	"Advertencia", JOptionPane.WARNING_MESSAGE);
