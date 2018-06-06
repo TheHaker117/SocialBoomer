@@ -37,7 +37,6 @@ public class ExcelReportFormat{
 		this.date = date;
 		this.message = message;
 		this.answer = answer;
-		
 	}
 	
 	
@@ -58,11 +57,6 @@ public class ExcelReportFormat{
 	    Iterator<String[]> ite = links.iterator();
 	    int row_count = 0; 
 	    
-	    row = sheet.createRow(1);
-	    row.createCell(0).setCellValue(row_count);	// Count
-	    row.createCell(5).setCellValue(message);	// Mensaje
-	    
-	    
 	    while(ite.hasNext()){
 	    	String[] data = ite.next();
 	    	
@@ -73,7 +67,10 @@ public class ExcelReportFormat{
 	    	row.createCell(2).setCellValue(data[0]);	// Destinatario
 	    	row.createCell(3).setCellValue(data[1]);	// Link
 	    	row.createCell(4).setCellValue(date);		// Fecha
-	 	    
+	    	
+	    	if(row_count == 1)
+	    		row.createCell(5).setCellValue(message);	// Mensaje
+	    	
 	 	    row.createCell(6).setCellValue(answer);		// Respuesta
 	    	
 	    }

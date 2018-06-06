@@ -427,6 +427,7 @@ public class SBGui extends JFrame implements ActionListener{
 		else if(evnt.getSource().equals(btn_clear))
 			ta_log.setText("");
 		
+		
 		else if(evnt.getSource().equals(btn_export)) {
 			JFileChooser chooser = new JFileChooser();
 			chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);

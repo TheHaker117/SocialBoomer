@@ -543,55 +543,6 @@ public class Brain{
 	
 	
 	/**
-	 * Sets the exclusion list with a given list
-	 * 
-	 * @param exclist
-	 */
-	private void setExclusionList(String[] exclist){
-		worker = new SwingWorker<Void, String>(){
-
-			@Override
-			protected Void doInBackground() throws Exception {
-				exclusions = exclist.clone();
-				
-				publish("\n#~ Se han añadido " + exclist.length + " elementos a la lista de exclusión");
-				
-				return null;
-			}
-			
-			@Override
-			protected void process(List<String> chunks){
-				for(String chunk : chunks)
-					ta_log.append(chunk);
-			}
-			
-		};
-		
-		worker.execute();
-		
-	}
-	
-	
-	/**
-	 * Return true is the name is in the exclusion list
-	 * 
-	 * @param name
-	 * @return
-	 */
-	
-	private boolean isExclusion(String name){
-		
-		if(exclusions != null)
-			for(int i = 0; i < exclusions.length; i++){
-				if(exclusions[i].contains(name))
-					return true;
-			}
-		
-		return false;
-		
-	}
-	
-	/**
 	 * It must generates the excel report, at least, generates the information
 	 * 
 	 */
@@ -610,8 +561,6 @@ public class Brain{
 				ExcelReportFormat excl = new ExcelReportFormat(username, date_run, mess, "VISTO");
 				
 				setExlSendedList();
-				
-				System.out.println(exl_sended.size());
 				
 				excl.createExcel(exl_sended);
 				excl.writeExcel(exlpath);
@@ -755,19 +704,37 @@ public class Brain{
 					if(!sended.isEmpty())
 						saveprocess.addAll(Arrays.asList(sended.toArray(new String[] {})));
 					
+					if(!saveprocess.isEmpty()){
+						String tpath = path.replace("\\", "/") + "/sended_data " + date_run + " (0).tmp";
+						File temp = new File(tpath);
+						
+						int counter = 1;
+						
+						while(temp.exists() && !temp.isDirectory()){
+							
+							tpath = tpath.substring(0, tpath.indexOf("(")) + "(" + counter++ + ").tmp";
+							temp = new File(tpath);
+						}
+						
+						BufferedWriter writer = new BufferedWriter(new FileWriter(temp));
+						
+						publish("\n#~ Guardando lista de enviados: \n" + saveprocess.toString());
+						
+						writer.write(Arrays.toString(toByteArray(saveprocess)));
+						writer.close();
+						
+						publish("\n#~ Archivo generado satisfactoriamente");	
+					}
 					
-					File temp = new File(path.replace("\\", "/") + "/sended_data.tmp");
+					else
+						publish("\n#~ Lista de enviados vacía. No se ha creado el archivo");
 					
-					BufferedWriter writer = new BufferedWriter(new FileWriter(temp));
-					
-					writer.write(Arrays.toString(toByteArray(saveprocess)));
-					writer.close();
-					
-					publish("\n#~ Archivo generado satisfactoriamente");
 					
 				}catch(Exception exc){
 					publish("\n#~ <<< NO SE PUDO CREAR sended_data.tmp >>>"
 							+ "\n#~ " + exc.getMessage());
+					
+					exc.printStackTrace();
 				}
 				
 				return null;
@@ -828,6 +795,61 @@ public class Brain{
 		worker.execute();
 		
 	}
+	
+	/**
+	 * Sets the exclusion list with a given list
+	 * 
+	 * @param exclist
+	 */
+	private void setExclusionList(String[] exclist){
+		worker = new SwingWorker<Void, String>(){
+
+			@Override
+			protected Void doInBackground() throws Exception {
+				exclusions = exclist.clone();
+				
+				publish("\n#~ Se han añadido " + exclist.length + " elementos a la lista de exclusión"
+				+ "\n" + Arrays.toString(exclist));
+				
+				return null;
+			}
+			
+			@Override
+			protected void process(List<String> chunks){
+				for(String chunk : chunks)
+					ta_log.append(chunk);
+			}
+			
+		};
+		
+		worker.execute();
+		
+	}
+	
+	
+	/**
+	 * Return true is the name is in the exclusion list
+	 * 
+	 * @param name
+	 * @return
+	 */
+	
+	private boolean isExclusion(String name){
+		
+		if(exclusions != null)
+			for(int i = 0; i < exclusions.length; i++){
+				if(exclusions[i].contains(name))
+					return true;
+			}
+		
+		return false;
+		
+	}
+	
+	
+	
+	
+	
 	
 	
 	/**
