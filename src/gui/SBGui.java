@@ -48,9 +48,9 @@ public class SBGui extends JFrame implements ActionListener{
 	private JPasswordField pf_pass;
 	private JTextArea ta_message, ta_log;
 	private JScrollPane sp_message, sp_log;
-	private JButton btn_login, btn_logout, btn_photo, btn_send,
-					btn_pause, btn_reload, btn_save, btn_load,
-					btn_clear, btn_export, btn_exit;
+	private JButton btn_login, btn_logout, btn_photo, btn_delphoto,
+					btn_send, btn_pause, btn_reload, btn_save, 
+					btn_load, btn_clear, btn_export, btn_exit;
 	private JComboBox cbx_sendto;
 	private JSpinner spn_waittime;
 	private JPanel pnl_login, pnl_log;
@@ -166,6 +166,13 @@ public class SBGui extends JFrame implements ActionListener{
 		btn_photo.setToolTipText("Añadir foto");
 		btn_photo.addActionListener(this);
 		
+		btn_delphoto = new JButton("–");
+		btn_delphoto.setBounds(310, 280, 30, 30);
+		btn_delphoto.setMargin(new Insets(0, 0, 0, 0));
+		btn_delphoto.setFont(new Font("Arial", Font.PLAIN, 17));
+		btn_delphoto.setToolTipText("Quitar foto");
+		btn_delphoto.addActionListener(this);
+		
 		pnl_login = new JPanel();
 		pnl_login.setBounds(0, 0, 345, 470);
 		pnl_login.setLayout(null);
@@ -183,6 +190,7 @@ public class SBGui extends JFrame implements ActionListener{
 		pnl_login.add(spn_waittime);
 		pnl_login.add(sp_message);
 		pnl_login.add(btn_photo);
+		pnl_login.add(btn_delphoto);
 		
 		
 		ta_log = new JTextArea();
@@ -298,11 +306,7 @@ public class SBGui extends JFrame implements ActionListener{
 		btn_reload.setEnabled(value); 
 		btn_save.setEnabled(value); 
 		btn_load.setEnabled(value);
-		btn_clear.setEnabled(value);
 		btn_export.setEnabled(value);
-		
-		
-		
 	}
 	
 	
@@ -347,6 +351,34 @@ public class SBGui extends JFrame implements ActionListener{
 			
 		// Send to checkbox event, not defined yet...
 		else if(evnt.getSource().equals(cbx_sendto)) {}
+		
+		else if(evnt.getSource().equals(btn_photo)){
+			JFileChooser chooser = new JFileChooser();
+			chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+			chooser.setFileFilter(new FileNameExtensionFilter("Images", "jpg", "jpeg", "gif", "png"));
+			int val = chooser.showOpenDialog(this);
+			
+			if(val == JFileChooser.APPROVE_OPTION){
+				File photo = chooser.getSelectedFile();
+				
+				ta_log.append("\n#~ Foto cargada: " +  photo.getName());
+				
+				boomer.setPhotoSelected(true, photo.getPath());
+				
+			}
+	
+			else if(val == JFileChooser.CANCEL_OPTION)
+				JOptionPane.showMessageDialog(this, "No se ha seleccionado ningún archivo",	"Advertencia", JOptionPane.WARNING_MESSAGE);
+
+			else 
+				JOptionPane.showMessageDialog(this, "No se ha podido cargar el archivo",	"Error", JOptionPane.ERROR_MESSAGE);
+			
+		}
+		
+		else if(evnt.getSource().equals(btn_delphoto)){
+			ta_log.append("\n#~ Foto descartada");
+			boomer.setPhotoSelected(false, null);
+		}
 		
 		
 		// Send button event
@@ -428,7 +460,7 @@ public class SBGui extends JFrame implements ActionListener{
 			ta_log.setText("");
 		
 		
-		else if(evnt.getSource().equals(btn_export)) {
+		else if(evnt.getSource().equals(btn_export)){
 			JFileChooser chooser = new JFileChooser();
 			chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 			int val = chooser.showSaveDialog(this);
@@ -448,38 +480,6 @@ public class SBGui extends JFrame implements ActionListener{
 		
 		else if(evnt.getSource().equals(btn_exit))
 			System.exit(1);
-		
-		
-		
-		
-		
-		else if(evnt.getSource().equals(btn_photo)){
-			JFileChooser chooser = new JFileChooser();
-			chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-			chooser.setFileFilter(new FileNameExtensionFilter("Images", "jpg", "jpeg", "gif", "png"));
-			int val = chooser.showOpenDialog(this);
-			
-			if(val == JFileChooser.APPROVE_OPTION){
-				File photo = chooser.getSelectedFile();
-				
-				ta_log.append("\n#~ Foto cargada: " +  photo.getName());
-				
-				boomer.setPhoto(photo.getPath());
-				
-			}
-	
-			else if(val == JFileChooser.CANCEL_OPTION)
-				JOptionPane.showMessageDialog(this, "No se ha seleccionado ningún archivo",	"Advertencia", JOptionPane.WARNING_MESSAGE);
-
-			else 
-				JOptionPane.showMessageDialog(this, "No se ha podido cargar el archivo",	"Error", JOptionPane.ERROR_MESSAGE);
-			
-			
-			
-			
-			
-			
-		}
 		
 	}
 	
