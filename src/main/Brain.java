@@ -200,7 +200,7 @@ public class Brain{
 					publish("\n#~ Inicio de sesión exitoso"
 							+ "\n#~ Cargando lista de amigos...");
 					
-					getFriendList(webClient.getPage("https://m.facebook.com/profile.php?v=friends"));
+				//	getFriendList(webClient.getPage("https://m.facebook.com/profile.php?v=friends"));
 					
 					publish("\n#~ Se encontraron " + queue.size() + " amigos en la cuenta");
 					
@@ -358,7 +358,7 @@ public class Brain{
 					HtmlForm photoform = forms.next();
 					if(photoform.getActionAttribute().contains("upload.facebook.com")){
 						sendphoto = photoform.getInputByValue("Enviar fotos");
-						System.out.println(messenger.asText());
+//						System.out.println(messenger.asText());
 						sendphoto.click();
 						break;
 					}
@@ -632,10 +632,12 @@ public class Brain{
 	}
 	
 	
-	public void setPhoto(String path){
+	public void setPhotoSelected(boolean value, String path){
 		
-		isPhotoSelected = true;
-		photopath = path.replace("\\", "/");
+		isPhotoSelected = value;
+		
+		if(path != null)
+			photopath = path.replace("\\", "/");
 		
 	}
 	
